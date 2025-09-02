@@ -24,6 +24,11 @@ fn ascii_digit_pattern(input_line: &str) -> bool {
 }
 
 fn match_pattern(input_line: &str, pattern: &str) -> bool {
+    if pattern.starts_with("^") {
+        let pattern_without_anchor = &pattern[1..];
+        return match_pattern_at_start(input_line, pattern_without_anchor);
+    }
+
     if pattern == "\\d" {
         return ascii_digit_pattern(input_line);
     } else if pattern == "\\w" {
@@ -62,6 +67,52 @@ fn check_pattern(input_line: &str, pattern: &str) -> bool {
         }
     }
     return false;
+}
+
+fn check_pattern_anchored(input_line: &str, pattern: &str) -> bool {
+    let mut expression = pattern;
+    let mut input_iterator = input_line;
+
+    while expression.len() > 0 && input_iterator.len() > 0 {
+        if expression.starts_with(r"\d") && input_iterator.chars().nth(0).unwrap().is_digit(10) {
+            expression = &expression[2..];
+            input_iterator = &input_iterator[1..];
+        } else if expression.starts_with(r"\w") && first_char_is_alphanumeric_or_underscore(input_iterator) {
+            expression = &expression[2..];
+            input_iterator = &input_iterator[1..];
+        } else if expression.starts_with(' ') && input_iterator.chars().nth(0).unwrap() == ' ' {
+            expression = &expression[1..];
+            input_iterator = &input_iterator[1..];
+        } else if input_iterator.starts_with(expression) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return expression.len() == 0;
+}
+
+fn match_pattern_at_start(input_line: &str, pattern: &str) -> bool {
+    if pattern == "\\d" {
+        return !input_line.is_empty() && input_line.chars().nth(0).unwrap().is_ascii_digit();
+    } else if pattern == "\\w" {
+        return first_char_is_alphanumeric_or_underscore(input_line);
+    } else if pattern.chars().count() > 3 && pattern.starts_with("[^") && pattern.ends_with("]") {
+        if input_line.is_empty() {
+            return false;
+        }
+        let exclude = &pattern[2..pattern.len() - 1];
+        let first_character = input_line.chars().nth(0).unwrap();
+        return !exclude.contains(first_character);
+    } else if pattern.chars().count() > 2 && pattern.starts_with("[") && pattern.ends_with("]") {
+        if input_line.is_empty() {
+            return false;
+        }
+        let character_match = &pattern[1..pattern.len() - 1];
+        let first_character = input_line.chars().nth(0).unwrap();
+        return character_match.contains(first_character);
+    } 
+    return check_pattern_anchored(input_line, pattern);
 }
 
 fn main() {
