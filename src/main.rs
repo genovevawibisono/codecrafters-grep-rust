@@ -11,6 +11,10 @@ fn match_pattern(input_line: &str, pattern: &str) -> bool {
         return input_line.chars().any(|c| c.is_alphanumeric() || c == '_')
     }
 
+    if pattern.chars().count() > 2 && pattern.starts_with('[') && pattern.ends_with(']') {
+        return input_line.contains(|c| pattern[1..pattern.len() - 1].contains(c))
+    }
+
     if pattern.chars().count() == 1 {
         return input_line.contains(pattern);
     } else {
