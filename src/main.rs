@@ -2,22 +2,66 @@ use std::env;
 use std::io;
 use std::process;
 
+fn match_characters(characters: &str, input_line: &str) -> bool {
+    return input_line.chars().any(|c| characters.contains(c))
+}
+
+fn not_match_characters(characters: &str, input_line: &str) -> bool {
+    return input_line.chars().any(|c| !characters.contains(c))
+}
+
+fn first_char_is_alphanumeric_or_underscore(input_line: &str) -> bool {
+    return input_line.chars().nth(0).unwrap().is_alphanumeric() || 
+            input_line.chars().nth(0).unwrap() == '_';
+}
+
+fn line_consists_of_alphanumeric_and_underscore(input_line: &str) -> bool {
+    return input_line.chars().any(|c| c.is_alphanumeric() || c == '_')
+}
+
+fn ascii_digit_pattern(input_line: &str) -> bool {
+    return input_line.chars().any(|c| c.is_ascii_digit())
+}
+
 fn match_pattern(input_line: &str, pattern: &str) -> bool {
     if pattern == "\\d" {
-        return input_line.chars().any(|c| c.is_ascii_digit());
+        return ascii_digit_pattern(input_line);
     } else if pattern == "\\w" {
-        return input_line.chars().any(|c| c.is_alphanumeric() || c == '_');
+        return line_consists_of_alphanumeric_and_underscore(input_line)
     } else if pattern.chars().count() > 2 && pattern.starts_with("[^") && pattern.ends_with("]") {
         let exclude = &pattern[2..pattern.len() - 1];
-        return input_line.chars().any(|c| !exclude.contains(c));
+        return not_match_characters(exclude, input_line)
     } else if pattern.chars().count() > 2 && pattern.starts_with('[') && pattern.ends_with(']') {
         let charmatch = &pattern[1..pattern.len() - 1];
-        return input_line.chars().any(|c| charmatch.contains(c));
+        return match_characters(charmatch, input_line)
     } else if pattern.chars().count() == 1 {
         return input_line.contains(pattern);
-    } else {
-        panic!("Unhandled pattern: {}", pattern)
+    } 
+    return check_pattern(input_line, pattern)
+}
+
+fn check_pattern(input_line: &str, pattern: &str) -> bool {
+    let mut expression = pattern;
+    let mut input_iterator = input_line;
+
+    while expression.len() > 0 && input_iterator.len() > 0 {
+        if expression.starts_with(r"\d") && input_iterator.chars().nth(0).unwrap().is_digit(10) {
+            expression = &expression[2..];
+            input_iterator = &input_iterator[1..];
+        } else if expression.starts_with(r"\w") && first_char_is_alphanumeric_or_underscore(input_iterator) {
+            expression = &expression[2..];
+            input_iterator = &input_iterator[1..];
+        } else if expression.starts_with(' ') && input_iterator.chars().nth(0).unwrap() == ' ' {
+            expression = &expression[1..];
+            input_iterator = &input_iterator[1..];
+        } else if input_iterator.contains(expression) {
+            println!("Pattern: {} matches input: {}", pattern, input_line);
+            return true;
+        } else {
+            input_iterator = &input_iterator[1..];
+        }
     }
+    return false;
 }
 
 fn main() {
