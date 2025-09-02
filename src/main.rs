@@ -11,8 +11,19 @@ fn not_match_characters(characters: &str, input_line: &str) -> bool {
 }
 
 fn first_char_is_alphanumeric_or_underscore(input_line: &str) -> bool {
+    if input_line.is_empty() {
+        return false;
+    }
     return input_line.chars().nth(0).unwrap().is_alphanumeric() || 
             input_line.chars().nth(0).unwrap() == '_';
+}
+
+fn last_char_is_alphanumeric_or_underscore(input_line: &str) -> bool {
+    if input_line.is_empty() {
+        return false;
+    }
+    let last = input_line.chars().last().unwrap();
+    return last.is_alphanumeric() || last == '_';
 }
 
 fn line_consists_of_alphanumeric_and_underscore(input_line: &str) -> bool {
@@ -24,9 +35,19 @@ fn ascii_digit_pattern(input_line: &str) -> bool {
 }
 
 fn match_pattern(input_line: &str, pattern: &str) -> bool {
+    if pattern.starts_with("^") && pattern.ends_with('$') {
+        let pattern_core = &pattern[1..pattern.len() - 1];
+        return input_line == pattern_core;
+    }
+
     if pattern.starts_with("^") {
         let pattern_without_anchor = &pattern[1..];
         return match_pattern_at_start(input_line, pattern_without_anchor);
+    }
+
+    if pattern.ends_with('$') {
+        let pattern_without_anchor = &pattern[..pattern.len() - 1];
+        return match_pattern_at_end(input_line, pattern_without_anchor);
     }
 
     if pattern == "\\d" {
@@ -115,6 +136,31 @@ fn match_pattern_at_start(input_line: &str, pattern: &str) -> bool {
     return check_pattern_anchored(input_line, pattern);
 }
 
+fn match_pattern_at_end(input_line: &str, pattern: &str) -> bool {
+    if pattern == "\\d" {
+        return !input_line.is_empty() && input_line.chars().last().unwrap().is_ascii_digit();
+    } else if pattern == "\\w" {
+        return last_char_is_alphanumeric_or_underscore(input_line);
+    } else if pattern.starts_with("[^") && pattern.ends_with("]") {
+        if input_line.is_empty() {
+            return false;
+        }
+        let exclude = &pattern[2..pattern.len() - 1];
+        let last_character = input_line.chars().last().unwrap();
+        return !exclude.contains(last_character);
+    } else if pattern.starts_with("[") && pattern.ends_with("]") {
+        if input_line.is_empty() {
+            return false;
+        }
+        let character_match = &pattern[1..pattern.len() - 1];
+        let last_character = input_line.chars().last().unwrap();
+        return character_match.contains(last_character);
+    }
+    // default: just check if input ends with pattern
+    return input_line.ends_with(pattern);
+}
+
+
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     eprintln!("Logs from your program will appear here!");
@@ -130,7 +176,7 @@ fn main() {
     
     // Remove the trailing newline character
     let input_line = input_line.trim_end();
-    
+
     if match_pattern(&input_line, &pattern) {
         process::exit(0);
     } else {
