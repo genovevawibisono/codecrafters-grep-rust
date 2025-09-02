@@ -7,6 +7,10 @@ fn match_pattern(input_line: &str, pattern: &str) -> bool {
         return input_line.chars().any(|c| c.is_ascii_digit())
     }
 
+    if pattern == "\\w" {
+        return input_line.chars().any(|c| c.is_alphanumeric() || c == '_')
+    }
+
     if pattern.chars().count() == 1 {
         return input_line.contains(pattern);
     } else {
