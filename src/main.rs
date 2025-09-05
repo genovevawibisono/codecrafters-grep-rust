@@ -107,7 +107,7 @@ fn check_pattern(input: &str, pattern: &str) -> bool {
         let mut i = 0;
         let input_chars: Vec<char> = input.chars().collect();
 
-        while i <= input_chars.len() && (i == 0 || input_chars[i - 1] == first) {
+        while i <= input_chars.len() && (i == 0 || first == '.' || input_chars[i - 1] == first) {
             let remaining: String = input_chars[i..].iter().collect();
             if check_pattern(&remaining, rest_after_star) {
                 return true;
@@ -118,21 +118,23 @@ fn check_pattern(input: &str, pattern: &str) -> bool {
     }
 
     if rest.starts_with('?') {
-    let rest_after_q = &rest[1..];
-    if !input.is_empty() && input.chars().next().unwrap() == first {
-        // Option 1: use the character
-        if check_pattern(&input[1..], rest_after_q) {
+        let rest_after_q = &rest[1..];
+        // 0 occurrences
+        if check_pattern(input, rest_after_q) {
             return true;
         }
+        // 1 occurrence if first matches (or if first is '.')
+        if !input.is_empty() && (first == '.' || input.chars().next().unwrap() == first) {
+            return check_pattern(&input[1..], rest_after_q);
+        }
+        return false;
     }
-    // Option 2: skip the character entirely
-    return check_pattern(input, rest_after_q);
-}
 
 
-    if !input.is_empty() && input.chars().next().unwrap() == first {
+    if !input.is_empty() && (first == '.' || input.chars().next().unwrap() == first) {
         return check_pattern(&input[1..], rest);
     }
+
 
     return false;
 }
