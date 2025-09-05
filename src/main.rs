@@ -117,6 +117,19 @@ fn check_pattern(input: &str, pattern: &str) -> bool {
         return false;
     }
 
+    if rest.starts_with('?') {
+    let rest_after_q = &rest[1..];
+    if !input.is_empty() && input.chars().next().unwrap() == first {
+        // Option 1: use the character
+        if check_pattern(&input[1..], rest_after_q) {
+            return true;
+        }
+    }
+    // Option 2: skip the character entirely
+    return check_pattern(input, rest_after_q);
+}
+
+
     if !input.is_empty() && input.chars().next().unwrap() == first {
         return check_pattern(&input[1..], rest);
     }
