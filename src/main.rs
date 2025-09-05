@@ -35,6 +35,9 @@ fn ascii_digit_pattern(input_line: &str) -> bool {
 }
 
 fn match_pattern(input_line: &str, pattern: &str) -> bool {
+    let pattern = expand_plus(&pattern);
+    println!("DEBUG: pattern = {:?}, text = {:?}", pattern, input_line);
+
     if pattern.starts_with("^") && pattern.ends_with('$') {
         let pattern_core = &pattern[1..pattern.len() - 1];
         return input_line == pattern_core;
@@ -53,40 +56,71 @@ fn match_pattern(input_line: &str, pattern: &str) -> bool {
     if pattern == "\\d" {
         return ascii_digit_pattern(input_line);
     } else if pattern == "\\w" {
-        return line_consists_of_alphanumeric_and_underscore(input_line)
+        return line_consists_of_alphanumeric_and_underscore(input_line);
     } else if pattern.chars().count() > 2 && pattern.starts_with("[^") && pattern.ends_with("]") {
         let exclude = &pattern[2..pattern.len() - 1];
-        return not_match_characters(exclude, input_line)
+        return not_match_characters(exclude, input_line);
     } else if pattern.chars().count() > 2 && pattern.starts_with('[') && pattern.ends_with(']') {
         let charmatch = &pattern[1..pattern.len() - 1];
-        return match_characters(charmatch, input_line)
+        return match_characters(charmatch, input_line);
     } else if pattern.chars().count() == 1 {
-        return input_line.contains(pattern);
-    } 
-    return check_pattern(input_line, pattern)
-}
+        return input_line.contains(&pattern);
+    }
 
-fn check_pattern(input_line: &str, pattern: &str) -> bool {
-    let mut expression = pattern;
-    let mut input_iterator = input_line;
-
-    while expression.len() > 0 && input_iterator.len() > 0 {
-        if expression.starts_with(r"\d") && input_iterator.chars().nth(0).unwrap().is_digit(10) {
-            expression = &expression[2..];
-            input_iterator = &input_iterator[1..];
-        } else if expression.starts_with(r"\w") && first_char_is_alphanumeric_or_underscore(input_iterator) {
-            expression = &expression[2..];
-            input_iterator = &input_iterator[1..];
-        } else if expression.starts_with(' ') && input_iterator.chars().nth(0).unwrap() == ' ' {
-            expression = &expression[1..];
-            input_iterator = &input_iterator[1..];
-        } else if input_iterator.contains(expression) {
-            println!("Pattern: {} matches input: {}", pattern, input_line);
+    // Try pattern at every position (substring search)
+    for start in 0..=input_line.len() {
+        if check_pattern(&input_line[start..], &pattern) {
             return true;
-        } else {
-            input_iterator = &input_iterator[1..];
         }
     }
+
+    return false;
+}
+
+fn check_pattern(input: &str, pattern: &str) -> bool {
+    if pattern.is_empty() {
+        return true;
+    }
+
+    if pattern.starts_with("\\d") {
+        if !input.is_empty() && input.chars().next().unwrap().is_ascii_digit() {
+            return check_pattern(&input[1..], &pattern[2..]);
+        } else {
+            return false;
+        }
+    }
+
+    if pattern.starts_with("\\w") {
+        if !input.is_empty() && (input.chars().next().unwrap().is_alphanumeric() || input.chars().next().unwrap() == '_') {
+            return check_pattern(&input[1..], &pattern[2..]);
+        } else {
+            return false;
+        }
+    }
+
+    let mut chars = pattern.chars();
+    let first = chars.next().unwrap();
+    let rest = chars.as_str();
+
+    if rest.starts_with('*') {
+        let rest_after_star = &rest[1..];
+        let mut i = 0;
+        let input_chars: Vec<char> = input.chars().collect();
+
+        while i <= input_chars.len() && (i == 0 || input_chars[i - 1] == first) {
+            let remaining: String = input_chars[i..].iter().collect();
+            if check_pattern(&remaining, rest_after_star) {
+                return true;
+            }
+            i += 1;
+        }
+        return false;
+    }
+
+    if !input.is_empty() && input.chars().next().unwrap() == first {
+        return check_pattern(&input[1..], rest);
+    }
+
     return false;
 }
 
@@ -160,6 +194,39 @@ fn match_pattern_at_end(input_line: &str, pattern: &str) -> bool {
     return input_line.ends_with(pattern);
 }
 
+fn expand_plus(pattern: &str) -> String {
+    let mut expanded = String::new();
+    let chars: Vec<char> = pattern.chars().collect();
+    let mut i = 0;
+
+    while i < chars.len() {
+        if i + 1 < chars.len() && chars[i + 1] == '+' {
+            // treat the previous char/group as one + star
+            if chars[i] == ']' {
+                // find matching [
+                let mut j = i;
+                while j > 0 && chars[j] != '[' {
+                    j -= 1;
+                }
+                let elem: String = chars[j..=i].iter().collect();
+                expanded.push_str(&elem);
+                expanded.push_str(&elem);
+                expanded.push('*');
+            } else {
+                let elem = chars[i];
+                expanded.push(elem);
+                expanded.push(elem);   // start of repetition
+                expanded.push('*');
+            }
+            i += 2;
+        } else {
+            expanded.push(chars[i]);
+            i += 1;
+        }
+    }
+
+    return expanded;
+}
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -171,6 +238,9 @@ fn main() {
     }
     
     let pattern = env::args().nth(2).unwrap();
+    let pattern = expand_plus(&pattern);
+    eprintln!("Expanded pattern: {}", pattern);
+
     let mut input_line = String::new();
     io::stdin().read_line(&mut input_line).unwrap();
     
