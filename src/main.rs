@@ -27,7 +27,7 @@ enum MatchGroup {
 enum CharacterClass {
     Literal(char),
     Digit,
-    WordCharacter,
+    Word,
     CharacterGroup(Vec<char>, bool),
     Alternation(Vec<Vec<(CharacterClass, Quantifier)>>),
     Backreference(usize),
@@ -100,7 +100,7 @@ fn parse_pattern(pattern: &str) -> Result<Vec<PatternToken>, InvalidRegexError> 
             '\\' => Some(PatternToken::CharacterClass(
                 match iter.next().ok_or(InvalidRegexError)? {
                     'd' => CharacterClass::Digit,
-                    'w' => CharacterClass::WordCharacter,
+                    'w' => CharacterClass::Word,
                     '\\' => CharacterClass::Literal('\\'),
                     e => match e.to_digit(10) {
                         Some(digit) => CharacterClass::Backreference(digit as usize),
@@ -430,7 +430,7 @@ fn match_char_to_class(char: &char, class: &CharacterClass) -> bool {
     match class {
         CharacterClass::Literal(l) => l.eq(char),
         CharacterClass::Digit => char.is_ascii_digit(),
-        CharacterClass::WordCharacter => char.is_ascii_alphanumeric() || char.eq(&'_'),
+        CharacterClass::Word => char.is_ascii_alphanumeric() || char.eq(&'_'),
         CharacterClass::CharacterGroup(items, is_positive) => match is_positive {
             true => items.contains(char),
             false => !items.contains(char),
